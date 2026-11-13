@@ -16,6 +16,10 @@ const SummaryApi = {
     url: `${backendDomin}/api/signin`,
     method: "post",
   },
+  mpesaPayment: {
+    url: `${backendDomin}/api/mpesa-stk-push`,
+    method: 'post'
+},
 
   current_user: {
     url: `${backendDomin}/api/user-details`,

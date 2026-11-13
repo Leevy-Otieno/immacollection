@@ -24,7 +24,7 @@ const Header = () => {
   const [search, setSearch] = useState(searchQuery);
 
   const allProductsQuery =
-    "category=Mens Clothes&category=watches&category=Unisex Clothes&category=Shoes & Sneakers&category=Heels & Sandals&category=Handbags & Totes&category=Backpacks & Shoulder Bags&category=for him valentines gift&category=For Her Collection&category=Complete Outfits&category=love notes & gift cards";
+    "category=Mens Clothes&category=Women's Clothes&category=Unisex Clothes&category=Shoes & Sneakers&category=Heels & Sandals&category=Handbags & Totes&category=Backpacks & Shoulder Bags&category=for him valentines gift&category=For Her Collection&category=Complete Outfits&category=love notes & gift cards";
   const giftsQuery =
     "category=Handbags & Totes&category=Backpacks & Shoulder Bags&category=for him valentines gift&category=For Her Collection&category=Complete Outfits&category=love notes & gift cards";
 
@@ -211,10 +211,10 @@ const Header = () => {
             Men's Clothes
           </Link>
           <Link
-            to="/product-category?category=watches"
+            to="/product-category?category=Women's Clothes"
             className="hover:text-amber-700 transition-colors pb-1 hover:border-b-2 hover:border-amber-800"
           >
-            Watches
+            Women's Clothes
           </Link>
           <Link
             to={`/product-category?${giftsQuery}`}
@@ -256,11 +256,11 @@ const Header = () => {
                   Perfumes
                 </Link>
                 <Link
-                  to="/product-category?category=watches"
+                  to="/product-category?category=Women's Clothes"
                   className="text-sm font-medium text-slate-700 hover:text-amber-600 transition-colors py-2 border-b border-slate-100"
                   onClick={() => setMobileNavOpen(false)}
                 >
-                  Premium Watches
+                  Premium Women's Clothes
                 </Link>
                 <Link
                   to={`/product-category?${giftsQuery}`}

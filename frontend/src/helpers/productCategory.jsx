@@ -1,6 +1,6 @@
 const productCategory = [
   { id: 1, label: "Mens Clothes", value: "Mens Clothes" },
-  { id: 2, label: "Watches", value: "watches" },
+  { id: 2, label: "Women's Clothes", value: "Women's Clothes" },
   { id: 3, label: "Unisex Clothes: ", value: "Unisex Clothes" },
   { id: 4, label: "Shoes & Sneakers", value: "Shoes & Sneakers" },
   { id: 5, label: "Heels & Sandals", value: "Heels & Sandals" },

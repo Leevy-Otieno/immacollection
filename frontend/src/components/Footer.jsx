@@ -39,7 +39,7 @@ const Footer = () => {
         <div className='flex flex-col gap-4'>
           <h2 className='text-white text-xl font-bold tracking-wider'>Imma <span className='text-amber-900'>Collections</span></h2>
           <p className='text-sm text-slate-400 leading-relaxed font-light'>
-            Your premier boutique for original designer perfumes, luxury watches, and curated custom gifts delivered directly across Kenya.
+            Your premier boutique for original designer perfumes, luxury Women's Clothes, and curated custom gifts delivered directly across Kenya.
           </p>
           {/* Social Icons with Scaling Micro-Interactions */}
           <div className='flex items-center gap-3 mt-2'>
@@ -56,7 +56,7 @@ const Footer = () => {
             <li><Link to="/product-category?category=Mens Clothes" className='hover:text-amber-900 hover:translate-x-1 inline-block transition-all duration-200 text-slate-400'>Mens Clothes</Link></li>
             <li><Link to="/product-category?category=Shoes & Sneakers" className='hover:text-amber-900 hover:translate-x-1 inline-block transition-all duration-200 text-slate-400'>Shoes & Sneakers</Link></li>
             <li><Link to="/product-category?category=Handbags & Totes" className='hover:text-amber-900 hover:translate-x-1 inline-block transition-all duration-200 text-slate-400'>Handbags & Totes</Link></li>
-            <li><Link to="/product-category?category=watches" className='hover:text-amber-900 hover:translate-x-1 inline-block transition-all duration-200 text-slate-400'>Premium Watches</Link></li>
+            <li><Link to="/product-category?category=Women's Clothes" className='hover:text-amber-900 hover:translate-x-1 inline-block transition-all duration-200 text-slate-400'>Premium Women's Clothes</Link></li>
           </ul>
         </div>
 

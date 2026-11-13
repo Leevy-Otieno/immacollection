@@ -13,7 +13,7 @@ import Cart from "../pages/Cart";
 import SearchProduct from "../pages/SearchProduct";
 import About from "../pages/About";
 import Contact from "../pages/Contact"; // This line explicitly fixes the ESLint 'Contact is not defined' error
-
+import Payment from "../pages/Payment";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -50,6 +50,10 @@ const router = createBrowserRouter([
       {
         path: "search",
         element: <SearchProduct />,
+      },
+      {
+        path: "payment",
+        element: <Payment />,
       },
       {
         path: "about",

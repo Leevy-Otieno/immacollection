@@ -23,11 +23,19 @@ const deleteAddToCartProduct = require("../controller/user/deleteAddToCartProduc
 const searchProduct = require("../controller/product/searchProduct");
 const filterProductController = require("../controller/product/filterProduct");
 const deleteProductController = require("../controller/product/deleteProduct");
+const { stkPushController, mpesaCallbackController } = require('../controllers/payment/mpesaController');
+
 
 router.post("/signup", userSignUpController);
 router.post("/signin", userSignInController);
 router.get("/user-details", authToken, userDetailsController);
 router.get("/userLogout", userLogout);
+
+
+
+// mpesa routes
+router.post('/mpesa-stk-push', stkPushController);
+router.post('/mpesa-callback', mpesaCallbackController);
 
 //admin panel
 router.get("/all-user", authToken, allUsers);
