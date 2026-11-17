@@ -39,7 +39,7 @@ const AdminPanel = () => {
                     </div>
                 </div>
 
-                {/* Dashboard Nav Items (Flexes horizontally on mobile, stacks vertically on desktop) */}       
+                {/* Dashboard Nav Items (Flexes horizontally on mobile, stacks vertically on desktop) */}   
                 <div className='w-full'>   
                     <nav className='flex flex-row md:flex-col p-2 md:p-4 gap-1.5 md:gap-1 justify-center md:justify-start w-full overflow-x-auto scrollbar-none'>
                         <Link 
@@ -61,6 +61,16 @@ const AdminPanel = () => {
                             }`}
                         >
                             📦 All Products
+                        </Link>
+                        <Link 
+                            to={"sales-report"} 
+                            className={`flex-1 md:flex-none text-center md:text-left text-xs md:text-sm font-semibold tracking-wide uppercase px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                                location.pathname.includes("sales-report") 
+                                ? "bg-amber-600 text-white shadow-sm" 
+                                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                            }`}
+                        >
+                            📊 Sales Report
                         </Link>
                     </nav>
                 </div>  
