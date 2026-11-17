@@ -1,4 +1,6 @@
 const axios = require('axios');
+const orderModel = require('../../models/orderModel');
+const productModel = require('../../models/productModel');
 
 // 1. Helper to generate Safaricom Daraja OAuth Access Token
 const getAccessToken = async () => {
@@ -17,20 +19,19 @@ const getAccessToken = async () => {
     return response.data.access_token;
 };
 
-// 2. Controller to trigger M-Pesa STK Push prompt
+// 2. Controller to trigger M-Pesa STK Push and save a Pending Order
 const stkPushController = async (req, res) => {
     try {
-        const { phone, amount } = req.body;
+        const { phone, amount, userId, cartItems } = req.body;
 
-        if (!phone || !amount) {
+        if (!phone || !amount || !cartItems || cartItems.length === 0) {
             return res.status(400).json({
-                message: 'Phone number and amount are required',
+                message: 'Phone number, amount, and cart items are required',
                 success: false,
                 error: true,
             });
         }
 
-        // Format phone number to 2547XXXXXXXX
         let formattedPhone = phone.replace(/\s+/g, '');
         if (formattedPhone.startsWith('0')) {
             formattedPhone = `254${formattedPhone.slice(1)}`;
@@ -42,7 +43,6 @@ const stkPushController = async (req, res) => {
         const shortcode = process.env.MPESA_SHORTCODE;
         const passkey = process.env.MPESA_PASSKEY;
 
-        // Generate YYYYMMDDHHMMSS timestamp
         const date = new Date();
         const timestamp =
             date.getFullYear() +
@@ -78,6 +78,19 @@ const stkPushController = async (req, res) => {
             }
         );
 
+        // Save a pending order linked to Safaricom's CheckoutRequestID
+        if (response.data && response.data.CheckoutRequestID) {
+            await orderModel.create({
+                userId,
+                products: cartItems,
+                totalAmount: amount,
+                paymentDetails: {
+                    checkoutRequestID: response.data.CheckoutRequestID,
+                    status: "Pending"
+                }
+            });
+        }
+
         res.status(200).json({
             message: 'STK Push sent successfully! Check your phone to enter your M-Pesa PIN.',
             data: response.data,
@@ -93,17 +106,55 @@ const stkPushController = async (req, res) => {
     }
 };
 
-// 3. Controller to handle transaction results returned by Safaricom
+// 3. Callback Controller: Updates Order Status & Automatically Decrements Size Stock
 const mpesaCallbackController = async (req, res) => {
     try {
         const callbackData = req.body;
         const stkCallback = callbackData?.Body?.stkCallback;
 
-        if (stkCallback && stkCallback.ResultCode === 0) {
-            const receiptObj = stkCallback.CallbackMetadata?.Item?.find(i => i.Name === 'MpesaReceiptNumber');
-            console.log(`Payment Successful! M-Pesa Receipt: ${receiptObj ? receiptObj.Value : 'N/A'}`);
-        } else {
-            console.log(`Payment Cancelled or Failed: ${stkCallback?.ResultDesc}`);
+        if (stkCallback) {
+            const checkoutRequestID = stkCallback.CheckoutRequestID;
+
+            if (stkCallback.ResultCode === 0) {
+                // Payment was successful
+                const receiptObj = stkCallback.CallbackMetadata?.Item?.find(i => i.Name === 'MpesaReceiptNumber');
+                const mpesaReceiptNumber = receiptObj ? receiptObj.Value : 'N/A';
+
+                // Find the pending order
+                const order = await orderModel.findOne({ "paymentDetails.checkoutRequestID": checkoutRequestID });
+
+                if (order && order.paymentDetails.status === "Pending") {
+                    order.paymentDetails.status = "Completed";
+                    order.paymentDetails.receiptNumber = mpesaReceiptNumber;
+                    await order.save();
+
+                    // Automatically decrement stock for each ordered size item
+                    for (let item of order.products) {
+                        const productId = item.productId;
+                        const orderedQty = item.quantity;
+                        const selectedSize = item.size; // e.g., 'M', 'L', 'XL'
+
+                        if (selectedSize && productId) {
+                            const product = await productModel.findById(productId);
+                            if (product && product.sizesStock) {
+                                const currentStock = product.sizesStock.get(selectedSize) || 0;
+                                const newStock = Math.max(0, currentStock - orderedQty);
+                                
+                                product.sizesStock.set(selectedSize, newStock);
+                                await product.save();
+                            }
+                        }
+                    }
+                    console.log(`Order completed & stock updated for receipt: ${mpesaReceiptNumber}`);
+                }
+            } else {
+                // Payment failed or was cancelled by user
+                await orderModel.findOneAndUpdate(
+                    { "paymentDetails.checkoutRequestID": checkoutRequestID },
+                    { "paymentDetails.status": "Failed" }
+                );
+                console.log(`Payment Failed: ${stkCallback.ResultDesc}`);
+            }
         }
 
         res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
