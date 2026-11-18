@@ -15,7 +15,8 @@ import About from "../pages/About";
 import Contact from "../pages/Contact";
 import Payment from "../pages/Payment";
 import SalesReport from "../pages/SalesReport";
-import AdminOrders from "../pages/AdminOrders"; // <-- 1. Import your AdminOrders component here
+import AdminOrders from "../pages/AdminOrders";
+import OrderTracking from "../pages/OrderTracking";
 
 const router = createBrowserRouter([
   {
@@ -71,6 +72,10 @@ const router = createBrowserRouter([
         element: <Contact />,
       },
       {
+        path: "my-orders",
+        element: <OrderTracking />,
+      },
+      {
         path: "admin-panel",
         element: <AdminPanel />,
         children: [
@@ -87,7 +92,7 @@ const router = createBrowserRouter([
             element: <SalesReport />,
           },
           {
-            path: "all-orders", // <-- 2. Register the all-orders sub-route here
+            path: "all-orders",
             element: <AdminOrders />,
           },
         ],

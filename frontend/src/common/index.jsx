@@ -16,10 +16,11 @@ const SummaryApi = {
     url: `${backendDomin}/api/signin`,
     method: "post",
   },
+
   mpesaPayment: {
     url: `${backendDomin}/api/mpesa-stk-push`,
-    method: 'post'
-},
+    method: "post",
+  },
 
   current_user: {
     url: `${backendDomin}/api/user-details`,
@@ -55,6 +56,11 @@ const SummaryApi = {
 
   updateProduct: {
     url: `${backendDomin}/api/update-product`,
+    method: "post",
+  },
+
+  deleteProduct: {
+    url: `${backendDomin}/api/delete-product`,
     method: "post",
   },
 
@@ -110,6 +116,28 @@ const SummaryApi = {
   filterProduct: {
     url: `${backendDomin}/api/filter-product`,
     method: "post",
+  },
+
+  // Financial Analytics & Sales Report
+  salesReport: {
+    url: `${backendDomin}/api/sales-report`,
+    method: "get",
+  },
+
+  // Professional Admin Fulfillment & Customer Tracking Endpoints
+  adminAllOrders: {
+    url: `${backendDomin}/api/admin/all-orders`,
+    method: "get",
+  },
+
+  adminUpdateOrderStatus: {
+    url: `${backendDomin}/api/admin/update-order-status`,
+    method: "post",
+  },
+
+  userOrders: {
+    url: `${backendDomin}/api/user-orders`,
+    method: "get",
   },
 };
 

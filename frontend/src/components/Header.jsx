@@ -2,7 +2,7 @@ import React, { useContext, useState } from "react";
 import Logo from "./Logo";
 import { GrSearch } from "react-icons/gr";
 import { FaRegCircleUser, FaBars, FaXmark } from "react-icons/fa6";
-import { FaShoppingCart, FaPhoneAlt } from "react-icons/fa";
+import { FaShoppingCart, FaPhoneAlt, FaTruckLoading } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import SummaryApi from "../common";
@@ -88,7 +88,7 @@ const Header = () => {
           <div className="hidden lg:flex items-center w-full justify-between max-w-sm border border-slate-200 rounded-full focus-within:border-amber-500 focus-within:shadow-md pl-4 bg-slate-50 focus-within:bg-white transition-all duration-300 group mx-4">
             <input
               type="text"
-              placeholder="Search luxury fragrance collections..."
+              placeholder="Search store collections..."
               className="w-full outline-none bg-transparent text-xs text-slate-700 placeholder-slate-400 font-light"
               onChange={handleSearch}
               value={search}
@@ -129,7 +129,7 @@ const Header = () => {
               )}
 
               {menuDisplay && (
-                <div className="absolute bg-white top-12 right-0 h-fit p-1.5 shadow-xl border border-slate-100 rounded-xl min-w-[160px] z-50">
+                <div className="absolute bg-white top-12 right-0 h-fit p-1.5 shadow-xl border border-slate-100 rounded-xl min-w-[170px] z-50">
                   <nav className="flex flex-col gap-0.5">
                     {user?.role === ROLE.ADMIN && (
                       <Link
@@ -143,6 +143,16 @@ const Header = () => {
                         ⚙️ Admin Panel
                       </Link>
                     )}
+                    <Link
+                      to={"/my-orders"}
+                      className="whitespace-nowrap block text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-700 p-2.5 rounded-lg transition-all"
+                      onClick={() => {
+                        setMenuDisplay(false);
+                        setMobileNavOpen(false);
+                      }}
+                    >
+                      📦 Track My Orders
+                    </Link>
                     <Link
                       to={"/cart"}
                       className="whitespace-nowrap block text-xs font-medium text-slate-700 hover:bg-slate-50 p-2.5 rounded-lg transition-all md:hidden"
@@ -197,7 +207,7 @@ const Header = () => {
         </div>
 
         {/* ─── TIER 2: DESKTOP CORE STORE NAVIGATION ROW ─── */}
-        <nav className="hidden lg:flex items-center justify-center gap-10 text-xs uppercase tracking-widest font-semibold text-slate-600 border-t border-slate-50 pt-2 mt-1 h-8">
+        <nav className="hidden lg:flex items-center justify-center gap-8 text-xs uppercase tracking-widest font-semibold text-slate-600 border-t border-slate-50 pt-2 mt-1 h-8">
           <Link
             to={`/product-category?${allProductsQuery}`}
             className="hover:text-amber-700 transition-colors pb-1 hover:border-b-2 hover:border-amber-800"
@@ -222,6 +232,14 @@ const Header = () => {
           >
             Gifts
           </Link>
+          {user?._id && (
+            <Link
+              to="/my-orders"
+              className="text-amber-700 hover:text-amber-900 transition-colors pb-1 hover:border-b-2 hover:border-amber-800 flex items-center gap-1"
+            >
+              📦 Track Orders
+            </Link>
+          )}
           <Link
             to="/about-us"
             className="hover:text-amber-700 transition-colors pb-1 hover:border-b-2 hover:border-amber-800"
@@ -253,14 +271,14 @@ const Header = () => {
                   className="text-sm font-medium text-slate-700 hover:text-amber-600 transition-colors py-2 border-b border-slate-100"
                   onClick={() => setMobileNavOpen(false)}
                 >
-                  Perfumes
+                  Men's Clothes
                 </Link>
                 <Link
                   to="/product-category?category=Women's Clothes"
                   className="text-sm font-medium text-slate-700 hover:text-amber-600 transition-colors py-2 border-b border-slate-100"
                   onClick={() => setMobileNavOpen(false)}
                 >
-                  Premium Women's Clothes
+                  Women's Clothes
                 </Link>
                 <Link
                   to={`/product-category?${giftsQuery}`}
@@ -269,6 +287,15 @@ const Header = () => {
                 >
                   Gifts
                 </Link>
+                {user?._id && (
+                  <Link
+                    to="/my-orders"
+                    className="text-sm font-bold text-amber-700 hover:text-amber-900 transition-colors py-2 border-b border-slate-100 flex items-center gap-2"
+                    onClick={() => setMobileNavOpen(false)}
+                  >
+                    📦 Track My Orders
+                  </Link>
+                )}
                 <Link
                   to="/about-us"
                   className="text-sm font-medium text-slate-700 hover:text-amber-600 transition-colors py-2 border-b border-slate-100"

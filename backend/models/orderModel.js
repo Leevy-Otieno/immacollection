@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
   {
@@ -16,27 +16,19 @@ const orderSchema = new mongoose.Schema(
         },
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
-        selectedSize: { type: String, default: "" },
+        selectedSize: { type: String, required: true },
       },
     ],
     totalAmount: { type: Number, required: true },
     phoneNumber: { type: String, required: true },
-
-    // Payment details
     paymentDetails: {
       checkoutRequestID: { type: String },
       receiptNumber: { type: String },
-      status: { type: String, default: "Pending" }, // Pending, Completed, Failed
+      status: { type: String, default: "Pending" },
     },
-    mpesaReceiptNumber: {
-      type: String,
-      unique: true,
-      sparse: true,
-    },
-
-    // Professional Shipping & Fulfillment Tracking
     orderStatus: {
       type: String,
+      default: "Processing",
       enum: [
         "Processing",
         "Shipped",
@@ -44,27 +36,18 @@ const orderSchema = new mongoose.Schema(
         "Delivered",
         "Cancelled",
       ],
-      default: "Processing",
     },
     shippingUpdates: [
       {
-        status: String,
-        message: String,
+        status: { type: String },
+        message: { type: String },
         timestamp: { type: Date, default: Date.now },
       },
     ],
-
-    paymentStatus: {
-      type: String,
-      default: "Completed",
-    },
-    date: {
-      type: Date,
-      default: Date.now,
-    },
   },
   { timestamps: true },
 );
 
 const orderModel = mongoose.model("order", orderSchema);
-module.exports = orderModel;
+
+export default orderModel;

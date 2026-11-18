@@ -1,7 +1,7 @@
-const axios = require("axios");
-const orderModel = require("../../models/orderModel");
-const productModel = require("../../models/productModel");
-const addToCartModel = require("../../models/cartProduct");
+import axios from "axios";
+import orderModel from "../../models/orderModel.js";
+import productModel from "../../models/productModel.js";
+import addToCartModel from "../../models/cartProduct.js";
 
 // 1. Helper to generate Safaricom Daraja OAuth Access Token
 const getAccessToken = async () => {
@@ -23,7 +23,7 @@ const getAccessToken = async () => {
 };
 
 // 2. Controller to trigger M-Pesa STK Push and save a Pending Order
-const stkPushController = async (req, res) => {
+export const stkPushController = async (req, res) => {
   try {
     const { phone, amount, cartItems } = req.body;
     const userId = req.userId || req.body.userId || cartItems?.[0]?.userId;
@@ -118,7 +118,7 @@ const stkPushController = async (req, res) => {
           {
             status: "Processing",
             message:
-              "Order received and payment confirmed. Preparing your items.",
+              "Order received and payment pending confirmation. Preparing your items.",
             timestamp: new Date(),
           },
         ],
@@ -146,7 +146,7 @@ const stkPushController = async (req, res) => {
 };
 
 // 3. Callback Controller: Updates Order Status & Automatically Deducts Size Stock
-const mpesaCallbackController = async (req, res) => {
+export const mpesaCallbackController = async (req, res) => {
   try {
     const callbackData = req.body;
     const stkCallback = callbackData?.Body?.stkCallback;
@@ -169,6 +169,13 @@ const mpesaCallbackController = async (req, res) => {
           order.paymentDetails.receiptNumber = mpesaReceiptNumber;
           order.mpesaReceiptNumber = mpesaReceiptNumber;
           order.paymentStatus = "Completed";
+
+          order.shippingUpdates.push({
+            status: "Processing",
+            message: `Payment confirmed via M-Pesa (Receipt: ${mpesaReceiptNumber}). Order queued for packaging.`,
+            timestamp: new Date(),
+          });
+
           await order.save();
 
           for (let item of order.products) {
@@ -199,7 +206,20 @@ const mpesaCallbackController = async (req, res) => {
       } else {
         await orderModel.findOneAndUpdate(
           { "paymentDetails.checkoutRequestID": checkoutRequestID },
-          { "paymentDetails.status": "Failed", paymentStatus: "Failed" },
+          {
+            $set: {
+              "paymentDetails.status": "Failed",
+              paymentStatus: "Failed",
+              orderStatus: "Cancelled",
+            },
+            $push: {
+              shippingUpdates: {
+                status: "Cancelled",
+                message: `Payment failed or was cancelled: ${stkCallback.ResultDesc}`,
+                timestamp: new Date(),
+              },
+            },
+          },
         );
         console.log(`Payment Failed: ${stkCallback.ResultDesc}`);
       }
@@ -212,8 +232,8 @@ const mpesaCallbackController = async (req, res) => {
   }
 };
 
-// 4. Check Payment Status Controller (For Frontend Polling)
-const checkPaymentStatus = async (req, res) => {
+// 4. Check Payment Status Controller
+export const checkPaymentStatus = async (req, res) => {
   try {
     const { checkoutRequestID } = req.params;
     const order = await orderModel.findOne({
@@ -236,8 +256,8 @@ const checkPaymentStatus = async (req, res) => {
   }
 };
 
-// 5. Get Logged-in Customer's Orders & Live Tracking
-const getUserOrdersController = async (req, res) => {
+// 5. Get Customer's Orders & Live Tracking
+export const getUserOrdersController = async (req, res) => {
   try {
     const userId = req.userId;
     const orders = await orderModel
@@ -255,7 +275,7 @@ const getUserOrdersController = async (req, res) => {
 };
 
 // 6. Admin: Get All Store Orders
-const getAllOrdersController = async (req, res) => {
+export const getAllOrdersController = async (req, res) => {
   try {
     const orders = await orderModel
       .find()
@@ -273,9 +293,9 @@ const getAllOrdersController = async (req, res) => {
 };
 
 // 7. Admin: Update Order Shipping & Fulfillment Status
-const updateOrderStatusController = async (req, res) => {
+export const updateOrderStatusController = async (req, res) => {
   try {
-    const { orderId, status, message } = req.body; // status: 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'
+    const { orderId, status, message } = req.body;
 
     const order = await orderModel.findById(orderId);
     if (!order) {
@@ -301,13 +321,4 @@ const updateOrderStatusController = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-};
-
-module.exports = {
-  stkPushController,
-  mpesaCallbackController,
-  checkPaymentStatus,
-  getUserOrdersController,
-  getAllOrdersController,
-  updateOrderStatusController,
 };

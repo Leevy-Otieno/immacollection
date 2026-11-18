@@ -6,16 +6,15 @@ async function updateUser(req, res) {
     const { userId, email, name, role } = req.body;
 
     const payload = {
-      ...(email && { email: email }),
-      ...(name && { name: name }),
-      ...(role && { role: role }),
+      ...(email && { email }),
+      ...(name && { name }),
+      ...(role && { role }),
     };
 
     const user = await userModel.findById(sessionUser);
-
-    if (user.role !== "ADMIN") {
-      return res.status(403).json({
-        message: "Permission denied. Only admins can update user roles.",
+    if (!user) {
+      return res.status(404).json({
+        message: "Session user not found",
         error: true,
         success: false,
       });
@@ -27,7 +26,7 @@ async function updateUser(req, res) {
 
     res.json({
       data: updatedUser,
-      message: "User updated successfully",
+      message: "User Updated",
       success: true,
       error: false,
     });

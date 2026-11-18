@@ -9,7 +9,6 @@ const app = express();
 
 // Allowed frontend origins for CORS
 const allowedOrigins = [
-
   "http://localhost:5173",
   "https://joyce-perfumier-hcc9-sable.vercel.app",
 ];
@@ -31,8 +30,8 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
 
 // Root route to prevent "Cannot GET /" error on backend deployment
@@ -53,4 +52,13 @@ connectDB().then(() => {
     console.log("Connected to DB");
     console.log("Server is running on port " + PORT);
   });
+});
+
+// 🛡️ Global safety nets to prevent server crashes on unexpected errors
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err.message);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });

@@ -1,25 +1,25 @@
 import React, { useEffect, useState } from "react";
+import SummaryApi from "../common";
 import { toast } from "react-toastify";
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState(null);
 
   const fetchAllOrders = async () => {
     try {
-      const res = await fetch("http://localhost:8080/api/admin/all-orders", {
+      const response = await fetch(SummaryApi.adminAllOrders.url, {
+        method: SummaryApi.adminAllOrders.method,
         credentials: "include",
       });
-      const data = await res.json();
+      const data = await response.json();
       if (data.success) {
         setOrders(data.data);
       } else {
-        toast.error(data.message || "Failed to load orders");
+        toast.error(data.message);
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Server error loading orders");
+    } catch (error) {
+      toast.error("Failed to load store orders");
     } finally {
       setLoading(false);
     }
@@ -29,190 +29,215 @@ const AdminOrders = () => {
     fetchAllOrders();
   }, []);
 
-  const handleUpdateStatus = async (orderId, newStatus) => {
-    setUpdatingId(orderId);
+  const handleStatusUpdate = async (orderId, newStatus) => {
     try {
-      const customMessage = prompt(
-        `Enter status message for customer (e.g., "Your package has been dispatched via courier"):`,
-        `Your order has been updated to: ${newStatus}`,
-      );
-
-      if (customMessage === null) {
-        setUpdatingId(null);
-        return; // Admin cancelled prompt
-      }
-
-      const res = await fetch(
-        "http://localhost:8080/api/admin/update-order-status",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            orderId,
-            status: newStatus,
-            message: customMessage,
-          }),
+      const response = await fetch(SummaryApi.adminUpdateOrderStatus.url, {
+        method: SummaryApi.adminUpdateOrderStatus.method,
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
-
-      const data = await res.json();
+        credentials: "include",
+        body: JSON.stringify({
+          orderId,
+          status: newStatus,
+          message: `Your order status has been updated to: ${newStatus}`,
+        }),
+      });
+      const data = await response.json();
       if (data.success) {
-        toast.success(`Order status updated to ${newStatus}`);
-        fetchAllOrders(); // Refresh list
+        toast.success("Order status updated successfully!");
+        fetchAllOrders();
       } else {
-        toast.error(data.message || "Update failed");
+        toast.error(data.message);
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to update status");
-    } finally {
-      setUpdatingId(null);
+      toast.error("Error updating order status");
     }
   };
 
+  const handlePrintInvoice = (order) => {
+    const printWindow = window.open("", "_blank", "width=800,height=600");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice - IMMA Collections #${order._id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .details { margin-bottom: 20px; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 13px; }
+            th { background-color: #f4f4f4; }
+            .total { text-align: right; font-size: 15px; font-weight: bold; margin-top: 15px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>IMMA Collections - Official Receipt</h2>
+            <p>Order ID: ${order._id}</p>
+          </div>
+          <div class="details">
+            <p><strong>Customer:</strong> ${order.userId?.name || "Customer"} (${order.userId?.email || "N/A"})</p>
+            <p><strong>Phone:</strong> ${order.phoneNumber}</p>
+            <p><strong>Payment Status:</strong> ${order.paymentDetails?.status || "Completed"} (Receipt: ${order.paymentDetails?.receiptNumber || "N/A"})</p>
+            <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item Name</th>
+                <th>Size</th>
+                <th>Qty</th>
+                <th>Price (KES)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.products
+                .map(
+                  (p) => `
+                <tr>
+                  <td>${p.productId?.productName || "Apparel Item"}</td>
+                  <td>${p.selectedSize || "N/A"}</td>
+                  <td>${p.quantity}</td>
+                  <td>${p.price * p.quantity}</td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <div class="total">
+            Total Amount: KES ${order.totalAmount?.toLocaleString()}
+          </div>
+          <script>
+            window.print();
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-slate-600 font-semibold">
+        Loading store orders...
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-4 max-w-6xl pt-24 lg:pt-28">
+    <div className="p-6 bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-800">
           Admin Fulfillment Dashboard
         </h2>
-        <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">
+        <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-bold">
           Total Orders: {orders.length}
         </span>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-slate-500">
-          Loading store orders...
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="bg-white p-8 rounded-xl border text-center text-slate-500">
-          No customer orders found yet.
-        </div>
+      {orders.length === 0 ? (
+        <p className="text-slate-500 bg-white p-6 rounded shadow-sm text-center">
+          No orders have been placed yet.
+        </p>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="space-y-6">
           {orders.map((order) => (
             <div
               key={order._id}
-              className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"
+              className="bg-white rounded-lg shadow-sm border border-slate-200 p-6"
             >
-              {/* Header Info */}
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 mb-4 gap-2">
+              <div className="flex flex-col md:flex-row justify-between border-b pb-4 mb-4 gap-4">
                 <div>
-                  <p className="text-xs text-slate-500">
-                    Customer:{" "}
-                    <strong className="text-slate-800">
-                      {order.userId?.name || "Guest User"}
-                    </strong>{" "}
-                    ({order.userId?.email})
-                  </p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Order ID:{" "}
-                    <span className="font-mono text-slate-600">
-                      {order._id}
-                    </span>
-                  </p>
                   <p className="text-xs text-slate-400">
-                    Phone:{" "}
-                    <strong className="text-slate-700">
-                      {order.phoneNumber}
-                    </strong>
+                    ORDER ID: {order._id}
+                  </p>
+                  <p className="text-sm font-semibold text-slate-700 mt-1">
+                    Customer:{" "}
+                    <span className="text-slate-900">
+                      {order.userId?.name || "Guest"}
+                    </span>{" "}
+                    ({order.phoneNumber})
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Ordered on: {new Date(order.createdAt).toLocaleString()}
                   </p>
                 </div>
+
                 <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border">
-                    Status: {order.orderStatus}
-                  </span>
-                  <span className="font-bold text-amber-600 text-base">
-                    Ksh {order.totalAmount.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              {/* Payment Receipt Info */}
-              <div className="bg-amber-50/60 border border-amber-200 p-3 rounded-lg text-xs text-amber-900 mb-4 flex justify-between items-center">
-                <span>
-                  M-Pesa Receipt Code:{" "}
-                  <strong className="font-mono">
-                    {order.paymentDetails?.receiptNumber ||
-                      order.mpesaReceiptNumber ||
-                      "Pending Confirmation"}
-                  </strong>
-                </span>
-                <span className="font-semibold">
-                  Payment: {order.paymentDetails?.status || "Pending"}
-                </span>
-              </div>
-
-              {/* Products Breakdown */}
-              <div className="mb-4">
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Purchased Items
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {order.products.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 bg-slate-50 p-2 rounded-lg border border-slate-100"
-                    >
-                      <img
-                        src={item.productId?.productImage?.[0]}
-                        alt={item.productId?.productName}
-                        className="w-12 h-12 object-scale-down bg-white rounded border p-1"
-                      />
-                      <div className="flex-1">
-                        <h5 className="font-semibold text-xs text-slate-800 line-clamp-1">
-                          {item.productId?.productName}
-                        </h5>
-                        <p className="text-[11px] text-slate-500">
-                          Qty: {item.quantity} | Size:{" "}
-                          <span className="font-bold text-amber-700">
-                            {item.selectedSize || "Standard"}
-                          </span>
-                        </p>
-                      </div>
-                      <span className="text-xs font-bold text-slate-700">
-                        Ksh {(item.price * item.quantity).toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Admin Fulfillment Action Toolbar */}
-              <div className="border-t pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="text-xs text-slate-500">
-                  Latest Update:{" "}
-                  {order.shippingUpdates?.[order.shippingUpdates.length - 1]
-                    ?.message || "Order initialized"}
-                </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <select
-                    disabled={updatingId === order._id}
-                    onChange={(e) =>
-                      handleUpdateStatus(order._id, e.target.value)
-                    }
-                    defaultValue=""
-                    className="bg-slate-50 border border-slate-300 rounded-lg text-xs p-2.5 font-semibold text-slate-700 focus:outline-none focus:border-amber-600 w-full sm:w-auto"
+                  <button
+                    onClick={() => handlePrintInvoice(order)}
+                    className="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded text-xs font-semibold transition"
                   >
-                    <option value="" disabled>
-                      Change Fulfillment Status...
-                    </option>
-                    <option value="Processing">
-                      Processing (Preparing items)
-                    </option>
-                    <option value="Shipped">
-                      Mark as Shipped (Dispatched)
-                    </option>
-                    <option value="Out for Delivery">
-                      Mark as Out for Delivery
-                    </option>
-                    <option value="Delivered">Mark as Delivered</option>
-                    <option value="Cancelled">Cancel Order</option>
-                  </select>
+                    🖨️ Print Invoice
+                  </button>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400 uppercase font-bold">
+                      Fulfillment Status
+                    </p>
+                    <select
+                      value={order.orderStatus}
+                      onChange={(e) =>
+                        handleStatusUpdate(order._id, e.target.value)
+                      }
+                      className="mt-1 border border-slate-300 rounded px-2 py-1 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="Processing">Processing</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Out for Delivery">Out for Delivery</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
                 </div>
+              </div>
+
+              {/* Items List */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                {order.products?.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 bg-slate-50 p-3 rounded border border-slate-100"
+                  >
+                    <img
+                      src={
+                        item.productId?.productImage?.[0] ||
+                        "https://via.placeholder.com/50"
+                      }
+                      alt=""
+                      className="w-12 h-12 object-cover rounded"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-xs text-slate-800 truncate">
+                        {item.productId?.productName || "Apparel Item"}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Size:{" "}
+                        <strong className="text-slate-700">
+                          {item.selectedSize || "N/A"}
+                        </strong>{" "}
+                        | Qty: {item.quantity}
+                      </p>
+                      <p className="text-xs font-bold text-slate-900">
+                        KES {item.price * item.quantity}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center text-sm font-bold border-t pt-3 text-slate-800">
+                <span>
+                  Payment:{" "}
+                  <span className="text-green-600">
+                    {order.paymentDetails?.status || "Completed"}
+                  </span>{" "}
+                  ({order.paymentDetails?.receiptNumber || "N/A"})
+                </span>
+                <span className="text-base text-orange-600">
+                  Total: KES {order.totalAmount?.toLocaleString()}
+                </span>
               </div>
             </div>
           ))}
