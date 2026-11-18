@@ -1,56 +1,70 @@
 const mongoose = require("mongoose");
 
-const orderSchema = new mongoose.Schema({
+const orderSchema = new mongoose.Schema(
+  {
     userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'user',
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
     },
     products: [
-        {
-            productId: { 
-                type: mongoose.Schema.Types.ObjectId, 
-                ref: 'product',
-                required: true 
-            },
-            quantity: { 
-                type: Number, 
-                required: true 
-            },
-            price: { 
-                type: Number, 
-                required: true 
-            },
-            // Stores the size chosen by the customer (e.g., 'M', 'L', 'EU 42') for inventory tracking
-            selectedSize: { 
-                type: String, 
-                default: "" 
-            }
-        }
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "product",
+          required: true,
+        },
+        quantity: { type: Number, required: true },
+        price: { type: Number, required: true },
+        selectedSize: { type: String, default: "" },
+      },
     ],
-    totalAmount: {
-        type: Number,
-        required: true
-    },
+    totalAmount: { type: Number, required: true },
+    phoneNumber: { type: String, required: true },
+
+    // Payment details
     paymentDetails: {
-        checkoutRequestID: { type: String },
-        receiptNumber: { type: String },
-        status: { type: String, default: 'Pending' }
+      checkoutRequestID: { type: String },
+      receiptNumber: { type: String },
+      status: { type: String, default: "Pending" }, // Pending, Completed, Failed
     },
     mpesaReceiptNumber: {
-        type: String,
-        sparse: true
+      type: String,
+      unique: true,
+      sparse: true,
     },
-    phoneNumber: String,
+
+    // Professional Shipping & Fulfillment Tracking
+    orderStatus: {
+      type: String,
+      enum: [
+        "Processing",
+        "Shipped",
+        "Out for Delivery",
+        "Delivered",
+        "Cancelled",
+      ],
+      default: "Processing",
+    },
+    shippingUpdates: [
+      {
+        status: String,
+        message: String,
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+
     paymentStatus: {
-        type: String,
-        default: 'Completed'
+      type: String,
+      default: "Completed",
     },
     date: {
-        type: Date,
-        default: Date.now
-    }
-}, { timestamps: true });
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { timestamps: true },
+);
 
-const orderModel = mongoose.model('order', orderSchema);
+const orderModel = mongoose.model("order", orderSchema);
 module.exports = orderModel;

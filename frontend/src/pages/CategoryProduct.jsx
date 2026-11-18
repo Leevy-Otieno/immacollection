@@ -129,7 +129,7 @@ const CategoryProduct = () => {
               <select
                 value={sortBy}
                 onChange={handleOnChangeSortBy}
-                className="text-xs bg-slate-50 border border-slate-300 rounded-md px-3 py-1.5 text-slate-700 font-medium focus:outline-none focus:border-amber-600 cursor-pointer"
+                className="text-xs bg-slate-50 border border-slate-300 rounded-md px-3 py-1.5 text-slate-700 font-medium focus:outline-none focus:border-amber-800 cursor-pointer"
               >
                 <option value="">Featured / Default</option>
                 <option value="asc">Price - Low to High</option>
@@ -145,7 +145,7 @@ const CategoryProduct = () => {
               onClick={handleAllProductsClick}
               className={`text-xs px-4 py-2 rounded-full font-semibold transition-all shrink-0 border ${
                 isAllSelected
-                  ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                  ? "bg-amber-700 text-white border-amber-700 shadow-sm"
                   : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
               }`}
             >
@@ -160,7 +160,7 @@ const CategoryProduct = () => {
                   onClick={() => handleSelectCategory(categoryName?.value)}
                   className={`text-xs px-3.5 py-2 rounded-full font-medium transition-all shrink-0 border capitalize ${
                     isChecked
-                      ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                      ? "bg-amber-700 text-white border-amber-700 shadow-sm"
                       : "bg-slate-50 text-slate-700 border-slate-200 hover:border-amber-500 hover:bg-slate-100"
                   }`}
                 >

@@ -5,7 +5,7 @@ const userSignUpController = require("../controller/user/userSignUp");
 const userSignInController = require("../controller/user/userSignIn");
 const userDetailsController = require("../controller/user/userDetails");
 const authToken = require("../middleware/authToken");
-const authTokenRole = require("../helpers/permission"); // Your existing admin permission helper
+const authTokenRole = require("../helpers/permission");
 const userLogout = require("../controller/user/userLogout");
 const allUsers = require("../controller/user/allUsers");
 const updateUser = require("../controller/user/updateUser");
@@ -25,10 +25,14 @@ const filterProductController = require("../controller/product/filterProduct");
 const deleteProductController = require("../controller/product/deleteProduct");
 const deleteUserController = require("../controller/user/deleteUser");
 
-// Import M-Pesa & Sales Report Controllers
+// Import M-Pesa & Order Tracking Controllers
 const {
   stkPushController,
   mpesaCallbackController,
+  checkPaymentStatus,
+  getUserOrdersController,
+  getAllOrdersController,
+  updateOrderStatusController,
 } = require("../controller/payments/mpesaController");
 const getSalesReportController = require("../controller/payments/salesReportController");
 
@@ -38,15 +42,31 @@ router.post("/signin", userSignInController);
 router.get("/user-details", authToken, userDetailsController);
 router.get("/userLogout", userLogout);
 
-// M-Pesa Daraja Payment Routes
-router.post("/mpesa-stk-push", stkPushController);
+// M-Pesa Daraja Payment & Polling Routes
+router.post("/mpesa-stk-push", authToken, stkPushController);
 router.post("/mpesa-callback", mpesaCallbackController);
+router.get("/payment-status/:checkoutRequestID", authToken, checkPaymentStatus);
 
-// Admin Panel Routes
+// Customer Order Tracking Route
+router.get("/user-orders", authToken, getUserOrdersController);
+
+// Admin Panel & Fulfillment Management Routes
 router.get("/all-user", authToken, allUsers);
 router.post("/update-user", authToken, updateUser);
 router.get("/sales-report", authToken, authTokenRole, getSalesReportController);
 router.post("/delete-user", authToken, authTokenRole, deleteUserController);
+router.get(
+  "/admin/all-orders",
+  authToken,
+  authTokenRole,
+  getAllOrdersController,
+);
+router.post(
+  "/admin/update-order-status",
+  authToken,
+  authTokenRole,
+  updateOrderStatusController,
+);
 
 // Product Routes
 router.post("/upload-product", authToken, UploadProductController);
