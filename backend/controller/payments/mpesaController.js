@@ -1,6 +1,7 @@
 const axios = require('axios');
 const orderModel = require('../../models/orderModel');
 const productModel = require('../../models/productModel');
+const addToCartModel = require('../../models/cartProduct');
 
 // 1. Helper to generate Safaricom Daraja OAuth Access Token
 const getAccessToken = async () => {
@@ -78,12 +79,20 @@ const stkPushController = async (req, res) => {
             }
         );
 
-        // Save a pending order linked to Safaricom's CheckoutRequestID
+        // Normalize cart items so selectedSize is always captured
+        const formattedProducts = cartItems.map(item => ({
+            productId: item.productId?._id || item.productId || item._id,
+            quantity: item.quantity || 1,
+            price: item.price || item.productId?.sellingPrice || item.productId?.price || 0,
+            selectedSize: item.selectedSize || item.size || ""
+        }));
+
         if (response.data && response.data.CheckoutRequestID) {
             await orderModel.create({
                 userId,
-                products: cartItems,
+                products: formattedProducts,
                 totalAmount: amount,
+                phoneNumber: formattedPhone,
                 paymentDetails: {
                     checkoutRequestID: response.data.CheckoutRequestID,
                     status: "Pending"
@@ -106,7 +115,7 @@ const stkPushController = async (req, res) => {
     }
 };
 
-// 3. Callback Controller: Updates Order Status & Automatically Decrements Size Stock
+// 3. Callback Controller: Updates Order Status & Automatically Deducts Size Stock
 const mpesaCallbackController = async (req, res) => {
     try {
         const callbackData = req.body;
@@ -116,23 +125,23 @@ const mpesaCallbackController = async (req, res) => {
             const checkoutRequestID = stkCallback.CheckoutRequestID;
 
             if (stkCallback.ResultCode === 0) {
-                // Payment was successful
                 const receiptObj = stkCallback.CallbackMetadata?.Item?.find(i => i.Name === 'MpesaReceiptNumber');
                 const mpesaReceiptNumber = receiptObj ? receiptObj.Value : 'N/A';
 
-                // Find the pending order
                 const order = await orderModel.findOne({ "paymentDetails.checkoutRequestID": checkoutRequestID });
 
                 if (order && order.paymentDetails.status === "Pending") {
                     order.paymentDetails.status = "Completed";
                     order.paymentDetails.receiptNumber = mpesaReceiptNumber;
+                    order.mpesaReceiptNumber = mpesaReceiptNumber;
+                    order.paymentStatus = "Completed";
                     await order.save();
 
-                    // Automatically decrement stock for each ordered size item
+                    // Automatically deduct stock for each ordered size item (Clothing or Footwear)
                     for (let item of order.products) {
                         const productId = item.productId;
-                        const orderedQty = item.quantity;
-                        const selectedSize = item.size; // e.g., 'M', 'L', 'XL'
+                        const orderedQty = item.quantity || 1;
+                        const selectedSize = item.selectedSize;
 
                         if (selectedSize && productId) {
                             const product = await productModel.findById(productId);
@@ -145,13 +154,18 @@ const mpesaCallbackController = async (req, res) => {
                             }
                         }
                     }
-                    console.log(`Order completed & stock updated for receipt: ${mpesaReceiptNumber}`);
+
+                    // Clear user's cart after successful purchase
+                    if (order.userId) {
+                        await addToCartModel.deleteMany({ userId: order.userId });
+                    }
+
+                    console.log(`Order completed & size stock deducted for receipt: ${mpesaReceiptNumber}`);
                 }
             } else {
-                // Payment failed or was cancelled by user
                 await orderModel.findOneAndUpdate(
                     { "paymentDetails.checkoutRequestID": checkoutRequestID },
-                    { "paymentDetails.status": "Failed" }
+                    { "paymentDetails.status": "Failed", paymentStatus: "Failed" }
                 );
                 console.log(`Payment Failed: ${stkCallback.ResultDesc}`);
             }

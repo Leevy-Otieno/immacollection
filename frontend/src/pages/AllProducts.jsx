@@ -1,209 +1,194 @@
-import React, { useContext, useEffect, useState } from 'react'
-import SummaryApi from '../common'
-import Context from '../context'
-import displayINRCurrency from '../helpers/displayCurrency'
-import { MdDelete } from "react-icons/md";
+import React, { useEffect, useState } from "react";
+import { MdModeEditOutline, MdDelete } from "react-icons/md";
+import UploadProduct from "../components/UploadProduct";
+import AdminEditProduct from "../components/AdminEditProduct";
+import SummaryApi from "../common";
+import { toast } from "react-toastify";
 
-const Cart = () => {
-    const [data,setData] = useState([])
-    const [loading,setLoading] = useState(false)
-    const context = useContext(Context)
-    const loadingCart = new Array(4).fill(null)
+const AllProducts = () => {
+  const [openUploadProduct, setOpenUploadProduct] = useState(false);
+  const [openEditProduct, setOpenEditProduct] = useState(false);
+  const [editProductData, setEditProductData] = useState(null);
+  const [allProduct, setAllProduct] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-
-    const fetchData = async() =>{
-        const response = await fetch(SummaryApi.addToCartProductView.url,{
-            method : SummaryApi.addToCartProductView.method,
-            credentials : 'include',
-            headers : {
-                "content-type" : 'application/json'
-            },
-        })
-
-        const responseData = await response.json()
-
-        if(responseData.success){
-            setData(responseData.data)
-        }
+  const fetchAllProduct = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        SummaryApi.allProduct.url || "http://localhost:8080/api/get-product",
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+      const dataResponse = await response.json();
+      setAllProduct(dataResponse?.data || []);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+      toast.error("Failed to load inventory.");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const handleLoading = async() =>{
-        await fetchData()
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm("Are you sure you want to delete this product?"))
+      return;
+
+    try {
+      const response = await fetch("http://localhost:8080/api/delete-product", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ _id: productId }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(data.message);
+        fetchAllProduct();
+      } else {
+        toast.error(data.message || "Failed to delete product");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error("Error deleting product");
     }
+  };
 
-    useEffect(()=>{
-        setLoading(true)
-        handleLoading()
-        setLoading(false)
-    },[])
-
-
-    const increaseQty = async(id,qty) =>{
-        const response = await fetch(SummaryApi.updateCartProduct.url,{
-            method : SummaryApi.updateCartProduct.method,
-            credentials : 'include',
-            headers : {
-                "content-type" : 'application/json'
-            },
-            body : JSON.stringify(
-                {  
-                    _id : id,
-                    quantity : qty + 1
-                }
-            )
-        })
-
-        const responseData = await response.json()
-
-        if(responseData.success){
-            fetchData()
-        }
-    }
-
-
-    const decraseQty = async(id,qty) =>{
-       if(qty >= 2){
-            const response = await fetch(SummaryApi.updateCartProduct.url,{
-                method : SummaryApi.updateCartProduct.method,
-                credentials : 'include',
-                headers : {
-                    "content-type" : 'application/json'
-                },
-                body : JSON.stringify(
-                    {  
-                        _id : id,
-                        quantity : qty - 1
-                    }
-                )
-            })
-
-            const responseData = await response.json()
-
-            if(responseData.success){
-                fetchData()
-            }
-        }
-    }
-
-    const deleteCartProduct = async(id)=>{
-        const response = await fetch(SummaryApi.deleteCartProduct.url,{
-            method : SummaryApi.deleteCartProduct.method,
-            credentials : 'include',
-            headers : {
-                "content-type" : 'application/json'
-            },
-            body : JSON.stringify(
-                {  
-                    _id : id,
-                }
-            )
-        })
-
-        const responseData = await response.json()
-
-        if(responseData.success){
-            fetchData()
-            context.fetchUserAddToCart()
-        }
-    }
-
-    const totalQty = data.reduce((previousValue,currentValue)=> previousValue + currentValue.quantity,0)
-    const totalPrice = data.reduce((preve,curr)=> preve + (curr.quantity * curr?.productId?.sellingPrice) ,0)
+  useEffect(() => {
+    fetchAllProduct();
+  }, []);
 
   return (
-    <div className='container mx-auto px-4'>
-        
-        <div className='text-center text-lg my-3'>
-            {
-                data.length === 0 && !loading && (
-                    <p className='bg-white py-5'>No Data</p>
-                )
-            }
+    <div className="p-4">
+      {/* Top Header Bar */}
+      <div className="bg-white py-3 px-4 flex justify-between items-center rounded shadow-sm mb-4">
+        <h2 className="font-bold text-lg text-slate-800">All Products</h2>
+        <button
+          className="border-2 border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white transition-all py-1.5 px-4 rounded-full font-medium text-sm"
+          onClick={() => setOpenUploadProduct(true)}
+        >
+          + Upload Product
+        </button>
+      </div>
+
+      {/* Product Grid */}
+      {loading ? (
+        <div className="text-center py-10 text-slate-500">
+          Loading products...
         </div>
+      ) : allProduct.length === 0 ? (
+        <div className="bg-white p-10 text-center rounded shadow-sm text-slate-500">
+          No products found in inventory. Click "+ Upload Product" to add one.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 h-[calc(100vh-190px)] overflow-y-auto pb-6">
+          {allProduct.map((product, index) => (
+            <div
+              key={product?._id || index}
+              className="bg-white p-4 rounded shadow-sm border border-slate-100 flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-full h-40 flex justify-center items-center bg-slate-50 rounded mb-3 overflow-hidden">
+                  <img
+                    src={product?.productImage?.[0]}
+                    alt={product?.productName}
+                    className="object-contain h-full w-full"
+                  />
+                </div>
+                <h3 className="font-semibold text-slate-800 line-clamp-1">
+                  {product?.productName}
+                </h3>
 
-        <div className='flex flex-col lg:flex-row gap-10 lg:justify-between p-4'>   
-                {/***view product */}
-                <div className='w-full max-w-3xl space-y-3'>
-                    {
-                        loading ? (
-                            loadingCart?.map((el,index) => {
-                                return(
-                                    <div key={el+"Add To Cart Loading"+index} className='w-full bg-slate-200 h-32 my-2 border border-slate-300 animate-pulse rounded'>
-                                    </div>
-                                )
-                            })
-                           
-                        ) : (
-                          data.map((product,index)=>{
-                             return(
-                             <div key={product?._id+"Add To Cart Loading"} className='w-full bg-white p-4 border border-slate-300 rounded flex gap-4 relative shadow-sm'>
-                                {/* Product Image */}
-                                <div className='w-28 h-28 lg:w-32 lg:h-32 bg-slate-100 rounded overflow-hidden flex-shrink-0'>
-                                    <img src={product?.productId?.productImage[0]} className='w-full h-full object-scale-down mix-blend-multiply' />
-                                </div>
-
-                                {/* Product Details */}
-                                <div className='flex flex-col justify-between w-full'>
-                                    {/**delete product */}
-                                    <div className='absolute right-3 top-3 text-amber-600 rounded-full p-2 hover:bg-amber-600 hover:text-white cursor-pointer' onClick={()=>deleteCartProduct(product?._id)}>
-                                        <MdDelete/>
-                                    </div>
-
-                                    <div>
-                                        <h2 className='text-lg lg:text-xl text-ellipsis line-clamp-1 font-semibold text-slate-800 pr-8'>{product?.productId?.productName}</h2>
-                                        <p className='capitalize text-slate-500 text-sm'>{product?.productId?.category}</p>
-                                    </div>
-
-                                    <div className='flex items-center justify-between my-2'>
-                                        <p className='text-amber-600 font-medium text-lg'>{displayINRCurrency(product?.productId?.sellingPrice)}</p>
-                                        <p className='text-slate-600 font-semibold text-lg'>{displayINRCurrency(product?.productId?.sellingPrice  * product?.quantity)}</p>
-                                    </div>
-
-                                    <div className='flex items-center gap-3'>
-                                        <button className='border border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white w-6 h-6 flex justify-center items-center rounded' onClick={()=>decraseQty(product?._id,product?.quantity)}>-</button>
-                                        <span className='font-medium'>{product?.quantity}</span>
-                                        <button className='border border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white w-6 h-6 flex justify-center items-center rounded' onClick={()=>increaseQty(product?._id,product?.quantity)}>+</button>
-                                    </div>
-                                </div>   
-                            </div>
-                             )
-                          })
-                        )
-                    }
+                <div className="flex justify-between items-center my-1">
+                  <p className="text-xs text-slate-500 capitalize">
+                    {product?.category}
+                  </p>
+                  {product?.productCode && (
+                    <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 font-mono">
+                      Code: {product.productCode}
+                    </span>
+                  )}
                 </div>
 
+                {/* Size Stock Breakdown */}
+                {product?.sizes && (
+                  <div className="flex flex-wrap gap-1 my-2">
+                    {Object.entries(product.sizes).map(([size, qty]) => (
+                      <span
+                        key={size}
+                        className="text-[11px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-700"
+                      >
+                        {size}:{" "}
+                        <strong
+                          className={
+                            qty === 0 ? "text-red-500" : "text-slate-900"
+                          }
+                        >
+                          {qty}
+                        </strong>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-                {/***summary  */}
-                <div className='mt-5 lg:mt-0 w-full max-w-sm'>
-                        {
-                            loading ? (
-                            <div className='h-36 bg-slate-200 border border-slate-300 animate-pulse rounded'>
-                                
-                            </div>
-                            ) : (
-                                <div className='bg-white border border-slate-200 rounded shadow-sm overflow-hidden'>
-                                    <h2 className='text-white bg-amber-600 px-4 py-2 font-semibold'>Summary</h2>
-                                    
-                                    <div className='p-4 space-y-3'>
-                                        <div className='flex items-center justify-between font-medium text-slate-600'>
-                                            <p>Quantity</p>
-                                            <p>{totalQty}</p>
-                                        </div>
-
-                                        <div className='flex items-center justify-between font-medium text-slate-600 border-t pt-2'>
-                                            <p className='font-bold text-slate-800'>Total Price</p>
-                                            <p className='font-bold text-amber-600'>{displayINRCurrency(totalPrice)}</p>    
-                                        </div>
-
-                                        <button className='bg-blue-600 hover:bg-blue-700 transition-colors p-2 text-white w-full mt-4 rounded font-medium'>Payment</button>
-                                    </div>
-                                </div>
-                            )
-                        }
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-2">
+                <div>
+                  <p className="text-[10px] text-slate-400 line-through">
+                    Ksh {Number(product?.price || 0).toLocaleString()}
+                  </p>
+                  <p className="font-bold text-orange-600">
+                    Ksh {Number(product?.sellingPrice || 0).toLocaleString()}
+                  </p>
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    className="p-2 bg-green-100 hover:bg-green-600 rounded-full text-green-700 hover:text-white transition-colors"
+                    title="Edit Product"
+                    onClick={() => {
+                      setEditProductData(product);
+                      setOpenEditProduct(true);
+                    }}
+                  >
+                    <MdModeEditOutline />
+                  </button>
+                  <button
+                    className="p-2 bg-red-100 hover:bg-red-600 rounded-full text-red-700 hover:text-white transition-colors"
+                    title="Delete Product"
+                    onClick={() => handleDeleteProduct(product?._id)}
+                  >
+                    <MdDelete />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
+      )}
+
+      {/* Upload Product Modal */}
+      {openUploadProduct && (
+        <UploadProduct
+          onClose={() => setOpenUploadProduct(false)}
+          fetchData={fetchAllProduct}
+        />
+      )}
+
+      {/* Edit Product Modal */}
+      {openEditProduct && (
+        <AdminEditProduct
+          onClose={() => setOpenEditProduct(false)}
+          productData={editProductData}
+          fetchdata={fetchAllProduct}
+        />
+      )}
     </div>
-  )
-}
+  );
+};
 
-export default Cart
+export default AllProducts;

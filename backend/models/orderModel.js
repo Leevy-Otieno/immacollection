@@ -8,18 +8,38 @@ const orderSchema = new mongoose.Schema({
     },
     products: [
         {
-            productId: { type: mongoose.Schema.Types.ObjectId, ref: 'product' },
-            quantity: Number,
-            price: Number
+            productId: { 
+                type: mongoose.Schema.Types.ObjectId, 
+                ref: 'product',
+                required: true 
+            },
+            quantity: { 
+                type: Number, 
+                required: true 
+            },
+            price: { 
+                type: Number, 
+                required: true 
+            },
+            // Stores the size chosen by the customer (e.g., 'M', 'L', 'EU 42') for inventory tracking
+            selectedSize: { 
+                type: String, 
+                default: "" 
+            }
         }
     ],
     totalAmount: {
         type: Number,
         required: true
     },
+    paymentDetails: {
+        checkoutRequestID: { type: String },
+        receiptNumber: { type: String },
+        status: { type: String, default: 'Pending' }
+    },
     mpesaReceiptNumber: {
         type: String,
-        unique: true
+        sparse: true
     },
     phoneNumber: String,
     paymentStatus: {
