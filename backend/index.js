@@ -9,26 +9,28 @@ const app = express();
 
 // Allowed frontend origins for CORS
 const allowedOrigins = [
-  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+  "https://immacollection.vercel.app",
   "https://joyce-perfumier-hcc9-sable.vercel.app",
-];
+  "http://localhost:5173",
+].filter(Boolean);
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, Postman, or server-to-server requests)
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, curl, or M-Pesa callbacks)
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.indexOf(origin) === -1) {
-        const msg =
-          "The CORS policy for this site does not allow access from the specified Origin.";
-        return callback(new Error(msg), false);
-      }
-      return callback(null, true);
-    },
-    credentials: true,
-  }),
-);
+    if (!allowedOrigins.includes(origin)) {
+      return callback(null, false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
@@ -38,7 +40,7 @@ app.use(cookieParser());
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "E-commerce Backend API is running successfully!",
+    message: "Immacollection Backend API is running successfully!",
   });
 });
 
@@ -54,11 +56,11 @@ connectDB().then(() => {
   });
 });
 
-// 🛡️ Global safety nets to prevent server crashes on unexpected errors
+// Global safety nets to prevent server crashes on unexpected errors
 process.on("uncaughtException", (err) => {
   console.error("Uncaught Exception:", err.message);
 });
 
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
 });
