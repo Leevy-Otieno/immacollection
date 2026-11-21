@@ -7,7 +7,6 @@ const router = require("./routes");
 
 const app = express();
 
-// Allowed frontend origins for CORS
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "https://immacollection.vercel.app",
@@ -17,26 +16,26 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman, curl, or M-Pesa callbacks)
     if (!origin) return callback(null, true);
-
-    if (!allowedOrigins.includes(origin)) {
-      return callback(null, false);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    return callback(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
 };
 
+// Apply CORS first and handle preflight OPTIONS for all paths
 app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
 
-// Root route to prevent "Cannot GET /" error on backend deployment
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -44,19 +43,34 @@ app.get("/", (req, res) => {
   });
 });
 
-// API routes
 app.use("/api", router);
 
-const PORT = process.env.PORT || 8080;
-
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log("Connected to DB");
-    console.log("Server is running on port " + PORT);
+// Central Express error handler so 400/500 errors don't drop responses without JSON
+app.use((err, req, res, next) => {
+  console.error("Express Error:", err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+    error: true,
+    success: false,
   });
 });
 
-// Global safety nets to prevent server crashes on unexpected errors
+const PORT = process.env.PORT || 8080;
+
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log("Connected to DB");
+      console.log("Server is running on port " + PORT);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to connect to DB:", err.message);
+  });
+
 process.on("uncaughtException", (err) => {
   console.error("Uncaught Exception:", err.message);
 });
